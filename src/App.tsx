@@ -442,7 +442,7 @@ export default function App() {
                            <p className="text-xs text-gray-400 uppercase">Vendas Hoje</p>
                            <input 
                               type="number" 
-                              className="text-right text-xl font-bold text-slate-800 border-b border-gray-200 focus:border-purple-500 outline-none w-32"
+                              className="text-right text-xl font-bold text-slate-800 border-b border-gray-200 focus:border-purple-500 outline-none w-32 bg-white text-gray-900" 
                               value={store.salesToday || 0}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value);
@@ -494,7 +494,7 @@ export default function App() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Perfil</label>
             <input 
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
               placeholder="Ex: Mark Zuckerberg 01"
               value={newItemName}
               onChange={e => setNewItemName(e.target.value)}
@@ -503,7 +503,7 @@ export default function App() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Login / Email</label>
             <input 
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
               placeholder="Ex: mark@fb.com"
               value={newItemExtra}
               onChange={e => setNewItemExtra(e.target.value)}
@@ -527,7 +527,7 @@ export default function App() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Loja</label>
             <input 
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 outline-none bg-white text-gray-900"
               placeholder="Ex: Minha Loja Top"
               value={newItemName}
               onChange={e => setNewItemName(e.target.value)}
@@ -536,7 +536,7 @@ export default function App() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">URL (Link)</label>
             <input 
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 outline-none bg-white text-gray-900"
               placeholder="Ex: https://minhaloja.com"
               value={newItemExtra}
               onChange={e => setNewItemExtra(e.target.value)}

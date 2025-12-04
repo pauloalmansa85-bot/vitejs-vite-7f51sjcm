@@ -2,15 +2,19 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  
+  /* Garante variáveis de modo claro */
+  color-scheme: light;
 }
 
-/* Garante que o corpo do site pegue a tela toda */
+/* Garante que o corpo do site pegue a tela toda e tenha fundo claro */
 body {
   margin: 0;
   padding: 0;
   width: 100vw;
   height: 100vh;
-  overflow: hidden; /* Evita barras de rolagem duplas */
+  overflow: hidden; 
+  background-color: #f3f4f6; /* Garante que o fundo fora do App seja cinza e não preto */
 }
 
 /* O comando !important obriga o site a obedecer isso acima de qualquer outro arquivo */
