@@ -12,7 +12,7 @@ import {
 import { 
   LayoutDashboard, Facebook, ShoppingBag, CreditCard, 
   Plus, Trash2, ArrowRight, ArrowLeft, 
-  CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User
+  CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User, LogOut
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SEU BANCO DE DADOS ---
@@ -137,6 +137,13 @@ export default function App() {
     }
   };
 
+  // --- FUNÇÃO DE LOGOUT ---
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setLoginUser('');
+    setLoginPass('');
+  };
+
   // --- AÇÕES DO BANCO DE DADOS ---
 
   const handleAddProfile = async () => {
@@ -213,11 +220,11 @@ export default function App() {
     { id: 4, title: '💀 Bloqueados', color: 'bg-red-50', text: 'text-red-800', border: 'border-red-500' },
   ];
 
-  // --- TELA DE LOGIN (RENDERIZAÇÃO CONDICIONAL) ---
+  // --- TELA DE LOGIN (RENDERIZAÇÃO FORÇADA NO TOPO) ---
   if (!isAuthenticated) {
     return (
-      <div className="flex h-screen w-screen bg-slate-900 items-center justify-center p-4">
-        <form onSubmit={handleSystemLogin} className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+      <div className="fixed inset-0 z-[9999] flex h-screen w-screen bg-slate-900 items-center justify-center p-4">
+        <form onSubmit={handleSystemLogin} className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm relative z-10">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
               <LayoutDashboard className="text-blue-600" /> DropCmd
@@ -306,8 +313,8 @@ export default function App() {
           ))}
         </nav>
 
-        {/* LINK DE SUPORTE */}
-        <div className="p-4 border-t border-slate-800">
+        {/* LINK DE SUPORTE E LOGOUT */}
+        <div className="p-4 border-t border-slate-800 space-y-2">
            <a 
              href="https://google.com" 
              target="_blank" 
@@ -317,6 +324,14 @@ export default function App() {
               <MessageCircle size={20} />
               <span>Suporte / Ajuda</span>
            </a>
+           
+           <button 
+             onClick={handleLogout}
+             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
+           >
+              <LogOut size={20} />
+              <span>Sair do Sistema</span>
+           </button>
         </div>
       </aside>
 
