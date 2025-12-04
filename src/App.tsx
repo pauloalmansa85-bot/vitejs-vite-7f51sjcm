@@ -12,7 +12,8 @@ import {
 import { 
   LayoutDashboard, Facebook, ShoppingBag, CreditCard, 
   Plus, Trash2, ArrowRight, ArrowLeft, 
-  CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User, LogOut
+  CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User, LogOut,
+  Palette, Link as LinkIcon, Rocket
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SEU BANCO DE DADOS ---
@@ -170,6 +171,7 @@ export default function App() {
         name: newItemName,
         url: newItemExtra || 'https://',
         salesToday: 0,
+        phase: 0, // Inicia na fase 0 (Configuração)
         status: 'online',
         createdAt: new Date().toISOString()
       });
@@ -185,6 +187,18 @@ export default function App() {
     if (newPhase < 0 || newPhase > 4) return;
     if (!user) return;
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profile.id), {
+      phase: newPhase
+    });
+  };
+
+  // NOVA FUNÇÃO: Atualizar fase da loja
+  const updateStorePhase = async (store, direction) => {
+    // Se a loja não tiver fase (lojas antigas), assume 0
+    const currentPhase = store.phase || 0;
+    const newPhase = currentPhase + direction;
+    if (newPhase < 0 || newPhase > 4) return;
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'stores', store.id), {
       phase: newPhase
     });
   };
@@ -212,12 +226,21 @@ export default function App() {
   const warmingProfiles = profiles.filter(p => p.phase > 0 && p.phase < 3).length;
   const blockedProfiles = profiles.filter(p => p.phase === 4).length;
 
-  const KANBAN_PHASES = [
+  // --- FASES ---
+  const KANBAN_PHASES_PROFILES = [
     { id: 0, title: '📥 Em Repouso', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
     { id: 1, title: '🔥 Aquecimento (Dia 1-3)', color: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-500' },
     { id: 2, title: '🚀 Maturação (Dia 4-7)', color: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-500' },
     { id: 3, title: '💸 Ativos (Anunciando)', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
     { id: 4, title: '💀 Bloqueados', color: 'bg-red-50', text: 'text-red-800', border: 'border-red-500' },
+  ];
+
+  const KANBAN_PHASES_STORES = [
+    { id: 0, title: '🏗️ Configuração Inicial', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
+    { id: 1, title: '🎨 Design & Produtos', color: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-500' },
+    { id: 2, title: '🔗 Gateway & Pixels', color: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-500' },
+    { id: 3, title: '🔥 Aquecimento (Tráfego)', color: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-500' },
+    { id: 4, title: '🚀 Escala (Vendas)', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
   ];
 
   // --- TELA DE LOGIN (RENDERIZAÇÃO FORÇADA NO TOPO) ---
@@ -410,7 +433,7 @@ export default function App() {
                             p.phase === 4 ? 'bg-red-100 text-red-700' : 
                             p.phase === 3 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                           }`}>
-                            {KANBAN_PHASES[p.phase]?.title.split(' ')[1]}
+                            {KANBAN_PHASES_PROFILES[p.phase]?.title.split(' ')[1]}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -430,7 +453,7 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW: CONTINGÊNCIA (KANBAN) */}
+        {/* VIEW: CONTINGÊNCIA (KANBAN DE PERFIS) */}
         {activeView === 'contingencia' && (
           <div className="h-full flex flex-col animate-in fade-in duration-300">
             <header className="flex justify-between items-center mb-6 flex-shrink-0">
@@ -449,7 +472,7 @@ export default function App() {
             {/* Kanban Board Container */}
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
               <div className="flex gap-6 h-full min-w-[1200px]">
-                {KANBAN_PHASES.map((phase) => (
+                {KANBAN_PHASES_PROFILES.map((phase) => (
                   <div key={phase.id} className="w-72 flex flex-col flex-shrink-0 h-full">
                     {/* Header Coluna */}
                     <div className={`p-3 rounded-t-lg font-bold flex justify-between items-center ${phase.color.replace('50', '200')} ${phase.text}`}>
@@ -515,13 +538,13 @@ export default function App() {
           </div>
         )}
 
-        {/* VIEW: LOJAS */}
+        {/* VIEW: LOJAS (KANBAN DE LOJAS) - NOVA IMPLEMENTAÇÃO */}
         {activeView === 'lojas' && (
-          <div className="animate-in fade-in duration-300">
-             <header className="flex justify-between items-center mb-8">
+          <div className="h-full flex flex-col animate-in fade-in duration-300">
+             <header className="flex justify-between items-center mb-6 flex-shrink-0">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">Lojas Shopify</h2>
-                <p className="text-gray-500">Gestão de links e faturamento diário (Manual)</p>
+                <h2 className="text-2xl font-bold text-slate-800">Esteira de Lojas</h2>
+                <p className="text-gray-500">Gestão de links, vendas e maturação da loja</p>
               </div>
               <button 
                 onClick={() => setIsStoreModalOpen(true)}
@@ -531,50 +554,78 @@ export default function App() {
               </button>
             </header>
 
-            <div className="grid gap-4">
-              {stores.map(store => (
-                <div key={store.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-6 items-center">
-                   <div className="h-16 w-16 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
-                      <ShoppingBag size={32} />
-                   </div>
-                   <div className="flex-1 w-full">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-800">{store.name}</h3>
-                          <a href={store.url} target="_blank" rel="noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                            {store.url} <ArrowRight size={12} />
+            {/* Kanban Board Container */}
+            <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+              <div className="flex gap-6 h-full min-w-[1200px]">
+                {KANBAN_PHASES_STORES.map((phase) => (
+                  <div key={phase.id} className="w-72 flex flex-col flex-shrink-0 h-full">
+                    {/* Header Coluna */}
+                    <div className={`p-3 rounded-t-lg font-bold flex justify-between items-center ${phase.color.replace('50', '200')} ${phase.text}`}>
+                      <span className="text-sm truncate">{phase.title}</span>
+                      <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">
+                        {stores.filter(s => (s.phase || 0) === phase.id).length}
+                      </span>
+                    </div>
+                    
+                    {/* Área de Cards */}
+                    <div className={`flex-1 p-2 rounded-b-lg ${phase.color} border border-t-0 border-gray-200 overflow-y-auto space-y-3`}>
+                      {stores.filter(s => (s.phase || 0) === phase.id).map(store => (
+                        <div key={store.id} className={`bg-white p-4 rounded-lg shadow-sm border-l-4 ${phase.border} hover:shadow-md transition group relative`}>
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-sm text-gray-800 truncate w-32" title={store.name}>{store.name}</h4>
+                            <button onClick={() => deleteItem('stores', store.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                          
+                          <a href={store.url} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1 mb-3 truncate">
+                            <LinkIcon size={10} /> {store.url}
                           </a>
-                        </div>
-                        <div className="text-right">
-                           <p className="text-xs text-gray-400 uppercase">Vendas Hoje</p>
-                           <input 
+
+                          {/* Campo de Vendas dentro do Card */}
+                          <div className="bg-gray-50 p-2 rounded border border-gray-100 mb-3">
+                            <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">Vendas Hoje</p>
+                            <input 
                               type="number" 
-                              className="text-right text-xl font-bold text-slate-800 border-b border-gray-200 focus:border-purple-500 outline-none w-32 bg-white text-gray-900" 
+                              className="w-full text-sm font-bold text-slate-800 bg-transparent border-b border-gray-200 focus:border-purple-500 outline-none" 
                               value={store.salesToday || 0}
+                              placeholder="0.00"
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value);
                                 if (!user) return;
                                 updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'stores', store.id), { salesToday: val });
                               }}
                            />
+                          </div>
+                          
+                          {/* Controles do Card */}
+                          <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-2">
+                            <button 
+                              disabled={phase.id === 0}
+                              onClick={() => updateStorePhase(store, -1)}
+                              className="p-1 rounded hover:bg-gray-100 text-gray-400 disabled:opacity-30"
+                              title="Voltar fase"
+                            >
+                              <ArrowLeft size={14} />
+                            </button>
+                            
+                            <span className="text-xs text-gray-400 font-medium">Fase {phase.id + 1}</span>
+
+                            <button 
+                              disabled={phase.id === 4}
+                              onClick={() => updateStorePhase(store, 1)}
+                              className="p-1 rounded hover:bg-gray-100 text-purple-500 disabled:opacity-30"
+                              title="Avançar fase"
+                            >
+                              <ArrowRight size={14} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-4 flex gap-4 text-xs">
-                        <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded">
-                          <CheckCircle size={12} /> Ativa
-                        </span>
-                        <button onClick={() => deleteItem('stores', store.id)} className="text-gray-400 hover:text-red-500 flex items-center gap-1">
-                          <Trash2 size={12} /> Remover Loja
-                        </button>
-                      </div>
-                   </div>
-                </div>
-              ))}
-              {stores.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-                  <p className="text-gray-400">Nenhuma loja cadastrada.</p>
-                </div>
-              )}
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
