@@ -81,28 +81,25 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
 
   // --- ESTADOS DO SISTEMA ---
-  // CORREÇÃO: Adicionado <any> para evitar erro de "User | null"
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
   
   // Listas de dados
-  // CORREÇÃO: Adicionado <any[]> para evitar erro de "never[]"
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [stores, setStores] = useState<any[]>([]);
-  const [pages, setPages] = useState<any[]>([]); 
-  const [financials, setFinancials] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState([]);
+  const [stores, setStores] = useState([]);
+  const [pages, setPages] = useState([]); // Nova lista para Páginas
+  const [financials, setFinancials] = useState([]);
   
   // Modais e Forms
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
-  const [isPageModalOpen, setIsPageModalOpen] = useState(false); 
+  const [isPageModalOpen, setIsPageModalOpen] = useState(false); // Modal para Páginas
   const [newItemName, setNewItemName] = useState('');
   const [newItemExtra, setNewItemExtra] = useState(''); 
 
   // --- AUTENTICAÇÃO FIREBASE ---
   useEffect(() => {
     const initAuth = async () => {
-      // @ts-ignore
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
         // @ts-ignore
         await signInWithCustomToken(auth, __initial_auth_token);
@@ -114,7 +111,7 @@ export default function App() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  // --- CARREGAMENTO DE DADOS ---
+  // --- CARREGAMENTO DE DADOS (SÓ RODA SE TIVER LOGADO NO FIREBASE) ---
   useEffect(() => {
     if (!user) return;
 
@@ -126,6 +123,7 @@ export default function App() {
       setStores(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => console.error("Erro ao ler lojas:", error));
 
+    // Novo Listener para Páginas
     const unsubPages = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'pages'), (snap) => {
       setPages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => console.error("Erro ao ler páginas:", error));
@@ -138,7 +136,7 @@ export default function App() {
   }, [user]);
 
   // --- FUNÇÃO DE LOGIN DO SISTEMA (ADMIN/1313) ---
-  const handleSystemLogin = (e: any) => {
+  const handleSystemLogin = (e) => {
     e.preventDefault();
     if (loginUser === 'admin' && loginPass === '1313') {
       setIsAuthenticated(true);
@@ -148,6 +146,7 @@ export default function App() {
     }
   };
 
+  // --- FUNÇÃO DE LOGOUT ---
   const handleLogout = () => {
     setIsAuthenticated(false);
     setLoginUser('');
@@ -191,6 +190,7 @@ export default function App() {
     }
   };
 
+  // NOVA FUNÇÃO: Adicionar Página
   const handleAddPage = async () => {
     if (!newItemName || !user) return;
     try {
@@ -208,7 +208,7 @@ export default function App() {
     }
   };
 
-  const updateProfilePhase = async (profile: any, direction: number) => {
+  const updateProfilePhase = async (profile, direction) => {
     const newPhase = profile.phase + direction;
     if (newPhase < 0 || newPhase > 4) return;
     if (!user) return;
@@ -217,7 +217,7 @@ export default function App() {
     });
   };
 
-  const updateStorePhase = async (store: any, direction: number) => {
+  const updateStorePhase = async (store, direction) => {
     const currentPhase = store.phase || 0;
     const newPhase = currentPhase + direction;
     if (newPhase < 0 || newPhase > 4) return;
@@ -227,7 +227,8 @@ export default function App() {
     });
   };
 
-  const updatePagePhase = async (page: any, direction: number) => {
+  // NOVA FUNÇÃO: Atualizar fase da página
+  const updatePagePhase = async (page, direction) => {
     const currentPhase = page.phase || 0;
     const newPhase = currentPhase + direction;
     if (newPhase < 0 || newPhase > 4) return;
@@ -237,7 +238,7 @@ export default function App() {
     });
   };
 
-  const toggleBlockProfile = async (profile: any) => {
+  const toggleBlockProfile = async (profile) => {
     const newStatus = profile.status === 'blocked' ? 'active' : 'blocked';
     const newPhase = newStatus === 'blocked' ? 4 : 0;
     if (!user) return;
@@ -247,7 +248,7 @@ export default function App() {
     });
   };
 
-  const deleteItem = async (collectionName: string, id: string) => {
+  const deleteItem = async (collectionName, id) => {
     if (!user) return;
     if (confirm('Tem certeza que deseja excluir?')) {
       await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, collectionName, id));
@@ -260,6 +261,7 @@ export default function App() {
   const warmingProfiles = profiles.filter(p => p.phase > 0 && p.phase < 3).length;
   const blockedProfiles = profiles.filter(p => p.phase === 4).length;
 
+  // --- FASES ---
   const KANBAN_PHASES_PROFILES = [
     { id: 0, title: '📥 Em Repouso', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
     { id: 1, title: '🔥 Aquecimento (Dia 1-3)', color: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-500' },
@@ -276,6 +278,7 @@ export default function App() {
     { id: 4, title: '🚀 Escala (Vendas)', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
   ];
 
+  // NOVA: Fases das Páginas
   const KANBAN_PHASES_PAGES = [
     { id: 0, title: '🆕 Criação & Config', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
     { id: 1, title: '📝 Conteúdo (3-5 Posts)', color: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-500' },
@@ -284,6 +287,7 @@ export default function App() {
     { id: 4, title: '📢 Pronta p/ Anúncio', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
   ];
 
+  // --- TELA DE LOGIN (RENDERIZAÇÃO FORÇADA NO TOPO) ---
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-[9999] flex h-screen w-screen bg-slate-900 items-center justify-center p-4">
@@ -340,6 +344,7 @@ export default function App() {
     );
   }
 
+  // --- TELA PRINCIPAL (DASHBOARD) ---
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-800 overflow-hidden">
       
@@ -349,7 +354,7 @@ export default function App() {
           <h1 className="text-2xl font-bold text-blue-400 flex items-center gap-2">
             <LayoutDashboard size={24} /> DropCmd
           </h1>
-          <p className="text-xs text-gray-400 mt-1">Gestão Integrada v2.2</p>
+          <p className="text-xs text-gray-400 mt-1">Gestão Integrada v2.1</p>
         </div>
         
         {/* MENU DE NAVEGAÇÃO */}
@@ -357,7 +362,7 @@ export default function App() {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'contingencia', label: 'Contingência FB', icon: Facebook },
-            { id: 'pages', label: 'Páginas FB', icon: Flag }, 
+            { id: 'pages', label: 'Páginas FB', icon: Flag }, // NOVO ITEM
             { id: 'lojas', label: 'Lojas & Vendas', icon: ShoppingBag },
             { id: 'cartoes', label: 'Cartões & Proxies', icon: CreditCard },
           ].map((item) => (
