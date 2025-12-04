@@ -39,7 +39,7 @@ const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- COMPONENTES UI ---
 
-const CardStat = ({ title, value, subtext, icon: Icon, colorClass, bgClass }) => (
+const CardStat = ({ title, value, subtext, icon: Icon, colorClass, bgClass }: any) => (
   <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all">
     <div className="flex justify-between items-start">
       <div>
@@ -54,7 +54,7 @@ const CardStat = ({ title, value, subtext, icon: Icon, colorClass, bgClass }) =>
   </div>
 );
 
-const Modal = ({ isOpen, onClose, title, children }) => {
+const Modal = ({ isOpen, onClose, title, children }: any) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -101,6 +101,7 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        // @ts-ignore
         await signInWithCustomToken(auth, __initial_auth_token);
       } else {
         await signInAnonymously(auth);
