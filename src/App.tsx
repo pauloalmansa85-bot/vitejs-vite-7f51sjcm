@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Facebook, ShoppingBag, CreditCard, 
   Plus, Trash2, ArrowRight, ArrowLeft, 
   CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User, LogOut,
-  Palette, Link as LinkIcon, Rocket
+  Palette, Link as LinkIcon, Rocket, Flag
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SEU BANCO DE DADOS ---
@@ -87,11 +87,13 @@ export default function App() {
   // Listas de dados
   const [profiles, setProfiles] = useState([]);
   const [stores, setStores] = useState([]);
+  const [pages, setPages] = useState([]); // Nova lista para Páginas
   const [financials, setFinancials] = useState([]);
   
   // Modais e Forms
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const [isPageModalOpen, setIsPageModalOpen] = useState(false); // Modal para Páginas
   const [newItemName, setNewItemName] = useState('');
   const [newItemExtra, setNewItemExtra] = useState(''); 
 
@@ -120,11 +122,16 @@ export default function App() {
       setStores(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => console.error("Erro ao ler lojas:", error));
 
+    // Novo Listener para Páginas
+    const unsubPages = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'pages'), (snap) => {
+      setPages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => console.error("Erro ao ler páginas:", error));
+
     const unsubFin = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'financials'), (snap) => {
       setFinancials(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => console.error("Erro ao ler financeiros:", error));
 
-    return () => { unsubProfiles(); unsubStores(); unsubFin(); };
+    return () => { unsubProfiles(); unsubStores(); unsubPages(); unsubFin(); };
   }, [user]);
 
   // --- FUNÇÃO DE LOGIN DO SISTEMA (ADMIN/1313) ---
@@ -171,13 +178,31 @@ export default function App() {
         name: newItemName,
         url: newItemExtra || 'https://',
         salesToday: 0,
-        phase: 0, // Inicia na fase 0 (Configuração)
+        phase: 0,
         status: 'online',
         createdAt: new Date().toISOString()
       });
       setNewItemName(''); setNewItemExtra(''); setIsStoreModalOpen(false);
     } catch (error) {
       alert("Erro ao salvar loja.");
+      console.error(error);
+    }
+  };
+
+  // NOVA FUNÇÃO: Adicionar Página
+  const handleAddPage = async () => {
+    if (!newItemName || !user) return;
+    try {
+      await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'pages'), {
+        name: newItemName,
+        link: newItemExtra || 'Sem link',
+        phase: 0,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      });
+      setNewItemName(''); setNewItemExtra(''); setIsPageModalOpen(false);
+    } catch (error) {
+      alert("Erro ao salvar página.");
       console.error(error);
     }
   };
@@ -191,14 +216,23 @@ export default function App() {
     });
   };
 
-  // NOVA FUNÇÃO: Atualizar fase da loja
   const updateStorePhase = async (store, direction) => {
-    // Se a loja não tiver fase (lojas antigas), assume 0
     const currentPhase = store.phase || 0;
     const newPhase = currentPhase + direction;
     if (newPhase < 0 || newPhase > 4) return;
     if (!user) return;
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'stores', store.id), {
+      phase: newPhase
+    });
+  };
+
+  // NOVA FUNÇÃO: Atualizar fase da página
+  const updatePagePhase = async (page, direction) => {
+    const currentPhase = page.phase || 0;
+    const newPhase = currentPhase + direction;
+    if (newPhase < 0 || newPhase > 4) return;
+    if (!user) return;
+    await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'pages', page.id), {
       phase: newPhase
     });
   };
@@ -241,6 +275,15 @@ export default function App() {
     { id: 2, title: '🔗 Gateway & Pixels', color: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-500' },
     { id: 3, title: '🔥 Aquecimento (Tráfego)', color: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-500' },
     { id: 4, title: '🚀 Escala (Vendas)', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
+  ];
+
+  // NOVA: Fases das Páginas
+  const KANBAN_PHASES_PAGES = [
+    { id: 0, title: '🆕 Criação & Config', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
+    { id: 1, title: '📝 Conteúdo (3-5 Posts)', color: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-500' },
+    { id: 2, title: '👍 Engajamento (Curtidas)', color: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-500' },
+    { id: 3, title: '🕰️ Maturação (7d+)', color: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-500' },
+    { id: 4, title: '📢 Pronta p/ Anúncio', color: 'bg-green-50', text: 'text-green-800', border: 'border-green-500' },
   ];
 
   // --- TELA DE LOGIN (RENDERIZAÇÃO FORÇADA NO TOPO) ---
@@ -310,7 +353,7 @@ export default function App() {
           <h1 className="text-2xl font-bold text-blue-400 flex items-center gap-2">
             <LayoutDashboard size={24} /> DropCmd
           </h1>
-          <p className="text-xs text-gray-400 mt-1">Gestão Integrada v1.0</p>
+          <p className="text-xs text-gray-400 mt-1">Gestão Integrada v2.1</p>
         </div>
         
         {/* MENU DE NAVEGAÇÃO */}
@@ -318,6 +361,7 @@ export default function App() {
           {[
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'contingencia', label: 'Contingência FB', icon: Facebook },
+            { id: 'pages', label: 'Páginas FB', icon: Flag }, // NOVO ITEM
             { id: 'lojas', label: 'Lojas & Vendas', icon: ShoppingBag },
             { id: 'cartoes', label: 'Cartões & Proxies', icon: CreditCard },
           ].map((item) => (
@@ -538,6 +582,80 @@ export default function App() {
           </div>
         )}
 
+        {/* VIEW: PÁGINAS FB (KANBAN NOVO) */}
+        {activeView === 'pages' && (
+          <div className="h-full flex flex-col animate-in fade-in duration-300">
+            <header className="flex justify-between items-center mb-6 flex-shrink-0">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-800">Esteira de Fanpages</h2>
+                <p className="text-gray-500">Mova as páginas conforme engajamento</p>
+              </div>
+              <button 
+                onClick={() => setIsPageModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow"
+              >
+                <Plus size={18} /> Nova Página
+              </button>
+            </header>
+
+            {/* Kanban Board Container */}
+            <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+              <div className="flex gap-6 h-full min-w-[1200px]">
+                {KANBAN_PHASES_PAGES.map((phase) => (
+                  <div key={phase.id} className="w-72 flex flex-col flex-shrink-0 h-full">
+                    {/* Header Coluna */}
+                    <div className={`p-3 rounded-t-lg font-bold flex justify-between items-center ${phase.color.replace('50', '200')} ${phase.text}`}>
+                      <span className="text-sm truncate">{phase.title}</span>
+                      <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">
+                        {pages.filter(p => (p.phase || 0) === phase.id).length}
+                      </span>
+                    </div>
+                    
+                    {/* Área de Cards */}
+                    <div className={`flex-1 p-2 rounded-b-lg ${phase.color} border border-t-0 border-gray-200 overflow-y-auto space-y-3`}>
+                      {pages.filter(p => (p.phase || 0) === phase.id).map(page => (
+                        <div key={page.id} className={`bg-white p-4 rounded-lg shadow-sm border-l-4 ${phase.border} hover:shadow-md transition group relative`}>
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-sm text-gray-800 truncate" title={page.name}>{page.name}</h4>
+                            <button onClick={() => deleteItem('pages', page.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                          
+                          <p className="text-xs text-gray-500 mb-3 truncate">Link: {page.link}</p>
+                          
+                          {/* Controles do Card */}
+                          <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-2">
+                            <button 
+                              disabled={phase.id === 0}
+                              onClick={() => updatePagePhase(page, -1)}
+                              className="p-1 rounded hover:bg-gray-100 text-gray-400 disabled:opacity-30"
+                              title="Voltar fase"
+                            >
+                              <ArrowLeft size={14} />
+                            </button>
+                            
+                            <span className="text-xs text-gray-400 font-medium">Fase {phase.id + 1}</span>
+
+                            <button 
+                              disabled={phase.id === 4}
+                              onClick={() => updatePagePhase(page, 1)}
+                              className="p-1 rounded hover:bg-gray-100 text-blue-500 disabled:opacity-30"
+                              title="Avançar fase"
+                            >
+                              <ArrowRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* VIEW: LOJAS (KANBAN DE LOJAS) - NOVA IMPLEMENTAÇÃO */}
         {activeView === 'lojas' && (
           <div className="h-full flex flex-col animate-in fade-in duration-300">
@@ -672,6 +790,40 @@ export default function App() {
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-medium"
           >
             Criar Perfil
+          </button>
+        </div>
+      </Modal>
+
+      {/* NOVO MODAL: PAGINAS */}
+      <Modal 
+        isOpen={isPageModalOpen} 
+        onClose={() => setIsPageModalOpen(false)} 
+        title="Nova Página do Facebook"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nome da Página</label>
+            <input 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+              placeholder="Ex: Ofertas Imperdíveis"
+              value={newItemName}
+              onChange={e => setNewItemName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Link da Página (Opcional)</label>
+            <input 
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+              placeholder="Ex: facebook.com/minhapagina"
+              value={newItemExtra}
+              onChange={e => setNewItemExtra(e.target.value)}
+            />
+          </div>
+          <button 
+            onClick={handleAddPage}
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 font-medium"
+          >
+            Adicionar Página
           </button>
         </div>
       </Modal>
