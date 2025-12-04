@@ -12,7 +12,7 @@ import {
 import { 
   LayoutDashboard, Facebook, ShoppingBag, CreditCard, 
   Plus, Trash2, ArrowRight, ArrowLeft, 
-  CheckCircle, AlertTriangle, XCircle
+  CheckCircle, AlertTriangle, XCircle, ExternalLink, MessageCircle, Lock, User
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO DO SEU BANCO DE DADOS ---
@@ -73,6 +73,13 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 // --- APP PRINCIPAL ---
 
 export default function App() {
+  // --- ESTADOS DE LOGIN ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [loginError, setLoginError] = useState('');
+
+  // --- ESTADOS DO SISTEMA ---
   const [user, setUser] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
   
@@ -87,7 +94,7 @@ export default function App() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemExtra, setNewItemExtra] = useState(''); 
 
-  // --- AUTENTICAÇÃO E CARREGAMENTO DE DADOS ---
+  // --- AUTENTICAÇÃO FIREBASE ---
   useEffect(() => {
     const initAuth = async () => {
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -100,6 +107,7 @@ export default function App() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
+  // --- CARREGAMENTO DE DADOS (SÓ RODA SE TIVER LOGADO NO FIREBASE) ---
   useEffect(() => {
     if (!user) return;
 
@@ -117,6 +125,17 @@ export default function App() {
 
     return () => { unsubProfiles(); unsubStores(); unsubFin(); };
   }, [user]);
+
+  // --- FUNÇÃO DE LOGIN DO SISTEMA (ADMIN/1313) ---
+  const handleSystemLogin = (e) => {
+    e.preventDefault();
+    if (loginUser === 'admin' && loginPass === '1313') {
+      setIsAuthenticated(true);
+      setLoginError('');
+    } else {
+      setLoginError('Usuário ou senha incorretos');
+    }
+  };
 
   // --- AÇÕES DO BANCO DE DADOS ---
 
@@ -194,6 +213,64 @@ export default function App() {
     { id: 4, title: '💀 Bloqueados', color: 'bg-red-50', text: 'text-red-800', border: 'border-red-500' },
   ];
 
+  // --- TELA DE LOGIN (RENDERIZAÇÃO CONDICIONAL) ---
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen w-screen bg-slate-900 items-center justify-center p-4">
+        <form onSubmit={handleSystemLogin} className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
+              <LayoutDashboard className="text-blue-600" /> DropCmd
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">Acesso Restrito</p>
+          </div>
+
+          {loginError && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 text-sm rounded flex items-center gap-2">
+              <AlertTriangle size={16} /> {loginError}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <input 
+                  type="text"
+                  value={loginUser}
+                  onChange={(e) => setLoginUser(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                  placeholder="admin"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                <input 
+                  type="password"
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                  placeholder="••••"
+                />
+              </div>
+            </div>
+            <button 
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition-colors shadow-lg"
+            >
+              Entrar no Sistema
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // --- TELA PRINCIPAL (DASHBOARD) ---
   return (
     <div className="flex h-screen bg-gray-50 font-sans text-gray-800 overflow-hidden">
       
@@ -205,6 +282,8 @@ export default function App() {
           </h1>
           <p className="text-xs text-gray-400 mt-1">Gestão Integrada v1.0</p>
         </div>
+        
+        {/* MENU DE NAVEGAÇÃO */}
         <nav className="flex-1 p-4 space-y-2">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -226,6 +305,19 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        {/* LINK DE SUPORTE */}
+        <div className="p-4 border-t border-slate-800">
+           <a 
+             href="https://google.com" 
+             target="_blank" 
+             rel="noreferrer"
+             className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+           >
+              <MessageCircle size={20} />
+              <span>Suporte / Ajuda</span>
+           </a>
+        </div>
       </aside>
 
       {/* ÁREA PRINCIPAL */}
