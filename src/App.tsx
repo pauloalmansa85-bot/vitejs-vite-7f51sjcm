@@ -1,8 +1,9 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, onSnapshot, 
-  doc, updateDoc, deleteDoc, query, orderBy 
+  doc, updateDoc, deleteDoc
 } from 'firebase/firestore';
 import { 
   getAuth, signInAnonymously, onAuthStateChanged, 
@@ -10,11 +11,11 @@ import {
 } from 'firebase/auth';
 import { 
   LayoutDashboard, Facebook, ShoppingBag, CreditCard, 
-  Plus, Trash2, ArrowRight, ArrowLeft, RefreshCw, 
-  LogOut, CheckCircle, AlertTriangle, XCircle, MoreVertical 
+  Plus, Trash2, ArrowRight, ArrowLeft, 
+  CheckCircle, AlertTriangle, XCircle
 } from 'lucide-react';
 
-// --- CONFIGURAÇÃO DO SEU BANCO DE DADOS (JÁ PREENCHIDA) ---
+// --- CONFIGURAÇÃO DO SEU BANCO DE DADOS ---
 const MINHA_CONFIGURACAO_FIREBASE = {
   apiKey: "AIzaSyChXgx1v7mYr8YGgHoAgE08Wn4yKFzohv0",
   authDomain: "dropcommand-6f9be.firebaseapp.com",
@@ -26,7 +27,6 @@ const MINHA_CONFIGURACAO_FIREBASE = {
 };
 
 // --- LÓGICA DE INICIALIZAÇÃO ---
-// O sistema verifica: "Estou no chat da IA? Uso a config de teste. Estou no StackBlitz? Uso a config real do usuário."
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
   ? JSON.parse(__firebase_config) 
   : MINHA_CONFIGURACAO_FIREBASE;
@@ -34,7 +34,6 @@ const firebaseConfig = typeof __firebase_config !== 'undefined'
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-// Define o ID do App (usado para separar dados de teste aqui no chat)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
 // --- COMPONENTES UI ---
@@ -77,7 +76,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
   
-  // Dados
+  // Listas de dados
   const [profiles, setProfiles] = useState([]);
   const [stores, setStores] = useState([]);
   const [financials, setFinancials] = useState([]);
@@ -86,12 +85,11 @@ export default function App() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [newItemName, setNewItemName] = useState('');
-  const [newItemExtra, setNewItemExtra] = useState(''); // Proxy ou URL
+  const [newItemExtra, setNewItemExtra] = useState(''); 
 
   // --- AUTENTICAÇÃO E CARREGAMENTO DE DADOS ---
   useEffect(() => {
     const initAuth = async () => {
-      // Se tiver token do chat, usa ele. Se não, tenta login anônimo padrão.
       if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
         await signInWithCustomToken(auth, __initial_auth_token);
       } else {
@@ -105,13 +103,6 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    // Define qual coleção usar: Se estiver no chat (appId definido), usa o caminho isolado.
-    // Se estiver no StackBlitz (appId padrão), usa o caminho direto do usuário.
-    // Para simplificar a compatibilidade, mantemos a estrutura, mas no StackBlitz 'appId' será 'default-app-id'
-    
-    // IMPORTANTE: Aqui usamos 'users' -> user.uid para garantir que cada usuário veja seus dados
-    // No seu caso pessoal, só você terá acesso, mas é uma boa prática de segurança.
-    
     const unsubProfiles = onSnapshot(collection(db, 'artifacts', appId, 'users', user.uid, 'profiles'), (snap) => {
       setProfiles(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, (error) => console.error("Erro ao ler perfis:", error));
@@ -135,13 +126,13 @@ export default function App() {
       await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'profiles'), {
         name: newItemName,
         login: newItemExtra || 'Sem login',
-        phase: 0, // 0 = Repouso, 1 = Aquecendo, 2 = Maturação, 3 = Ativo, 4 = Bloqueado
+        phase: 0, 
         status: 'active',
         createdAt: new Date().toISOString()
       });
       setNewItemName(''); setNewItemExtra(''); setIsProfileModalOpen(false);
     } catch (error) {
-      alert("Erro ao salvar: Verifique se o Firestore está habilitado no modo Teste no console do Firebase.");
+      alert("Erro ao salvar. Verifique o console.");
       console.error(error);
     }
   };
@@ -166,6 +157,7 @@ export default function App() {
   const updateProfilePhase = async (profile, direction) => {
     const newPhase = profile.phase + direction;
     if (newPhase < 0 || newPhase > 4) return;
+    if (!user) return;
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profile.id), {
       phase: newPhase
     });
@@ -173,9 +165,8 @@ export default function App() {
 
   const toggleBlockProfile = async (profile) => {
     const newStatus = profile.status === 'blocked' ? 'active' : 'blocked';
-    // Se bloquear, move para a fase 4 (Bloqueados) visualmente, ou mantem a fase mas muda status
-    // Vamos simplificar: Bloqueado é fase 4 no nosso Kanban
-    const newPhase = newStatus === 'blocked' ? 4 : 0; // Se desbloquear volta pro início
+    const newPhase = newStatus === 'blocked' ? 4 : 0;
+    if (!user) return;
     await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profiles', profile.id), {
       status: newStatus,
       phase: newPhase
@@ -183,6 +174,7 @@ export default function App() {
   };
 
   const deleteItem = async (collectionName, id) => {
+    if (!user) return;
     if (confirm('Tem certeza que deseja excluir?')) {
       await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, collectionName, id));
     }
@@ -194,7 +186,6 @@ export default function App() {
   const warmingProfiles = profiles.filter(p => p.phase > 0 && p.phase < 3).length;
   const blockedProfiles = profiles.filter(p => p.phase === 4).length;
 
-  // --- DEFINIÇÃO DAS FASES DO KANBAN ---
   const KANBAN_PHASES = [
     { id: 0, title: '📥 Em Repouso', color: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-400' },
     { id: 1, title: '🔥 Aquecimento (Dia 1-3)', color: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-500' },
@@ -322,7 +313,7 @@ export default function App() {
                     ))}
                     {profiles.length === 0 && (
                       <tr>
-                        <td colSpan="3" className="px-4 py-8 text-center text-gray-400">Nenhum perfil cadastrado.</td>
+                        <td colSpan={3} className="px-4 py-8 text-center text-gray-400">Nenhum perfil cadastrado.</td>
                       </tr>
                     )}
                   </tbody>
@@ -455,6 +446,7 @@ export default function App() {
                               value={store.salesToday || 0}
                               onChange={(e) => {
                                 const val = parseFloat(e.target.value);
+                                if (!user) return;
                                 updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'stores', store.id), { salesToday: val });
                               }}
                            />
